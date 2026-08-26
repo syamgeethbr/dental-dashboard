@@ -1,45 +1,39 @@
-export type Patient = {
+export type Branch = 'Ezhukone' | 'Chandanathope';
+
+export interface Patient {
   id: string;
-  name: string;
-  op_number: string | null;
-  gender: string | null;
-  address: string | null;
+  created_at: string;
+  op_number: string;
+  full_name: string;
   age: number | null;
-  phone: string | null;
+  gender: string | null;
+  phone: string;
   medical_history: string | null;
   allergies: string | null;
-  created_at: string;
-};
+  branch: Branch;
+}
 
-export type AppointmentStatus = "Waiting" | "In Progress" | "Completed" | "Cancelled";
-
-export type Appointment = {
+export interface Appointment {
   id: string;
+  created_at: string;
   patient_id: string;
   appointment_date: string;
-  appointment_time: string;
-  reason: string | null;
-  status: AppointmentStatus;
-  created_at: string;
-  patients?: Pick<Patient, "id" | "name" | "phone" | "allergies">;
-};
-
-export type Treatment = {
-  id: string;
-  patient_id: string;
-  doctor_name: string | null;
-  chief_complaint: string | null;
-  oral_examination: string | null;
-  diagnosis_plan: string | null;
-  treatment_name: string;
+  slot_time: string;
+  status: 'Waiting' | 'In Progress' | 'Completed' | 'Cancelled';
   notes: string | null;
-  cost: number | null;
-  amount_paid: number | null;
-  payment_method: string | null;
-  medications: string | null;
-  next_appointment_date: string | null;
-  xrays: string[] | null;
-  before_photos: string[] | null;
-  after_photos: string[] | null;
+  branch: Branch;
+  patients?: Patient;
+}
+
+export interface Treatment {
+  id: string;
   created_at: string;
-};
+  patient_id: string;
+  procedure_name: string;
+  tooth_number: string | null;
+  cost: number;
+  prescription: string | null;
+  notes: string | null;
+  branch: Branch;
+  patients?: Patient;
+}
