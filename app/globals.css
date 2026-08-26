@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  background-color: #F7F5F0;
+}
+
+body {
+  color: #1E2A28;
+}
+
+::selection {
+  background-color: #E4EBE3;
+}
+
+/* Visible keyboard focus everywhere */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #6B8F71;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.card {
+  background: #FFFFFF;
+  border: 1px solid #DDD8CE;
+  border-radius: 10px;
+}
+
+.field-label {
+  font-size: 0.75rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #4C6A51;
+  font-weight: 600;
+}
+
+.input-base {
+  width: 100%;
+  border: 1px solid #DDD8CE;
+  border-radius: 8px;
+  background: #FFFFFF;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.925rem;
+  color: #1E2A28;
+  transition: border-color 120ms ease;
+}
+
+.input-base:focus {
+  border-color: #6B8F71;
+}
