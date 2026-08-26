@@ -34,13 +34,12 @@ export default function PatientForm({
 
     try {
       const payload: any = {
-        patient_name: fullName.trim(),
+        name: fullName.trim(),
         gender: gender || "Male",
         phone: phone.trim() || null,
         address: address.trim() || null,
         medical_history: medicalHistory.trim() || "n/a",
         allergies: allergies.trim() || null,
-        branch: currentBranch || "Ezhukone",
       };
 
       if (opNumber.trim()) {
