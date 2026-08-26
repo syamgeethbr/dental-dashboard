@@ -6,15 +6,16 @@ import { Branch } from "@/lib/types";
 
 interface PatientFormProps {
   onPatientAdded: () => void;
-  currentBranch: Branch;
+  currentBranch?: Branch;
 }
 
-export default function PatientForm({ onPatientAdded, currentBranch }: PatientFormProps) {
+export default function PatientForm({ onPatientAdded, currentBranch = "Ezhukone" }: PatientFormProps) {
   const [fullName, setFullName] = useState("");
   const [opNumber, setOpNumber] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("Male");
   const [phone, setPhone] = useState("");
+  const [branch, setBranch] = useState<Branch>(currentBranch);
   const [medicalHistory, setMedicalHistory] = useState("");
   const [allergies, setAllergies] = useState("");
   const [loading, setLoading] = useState(false);
@@ -33,7 +34,7 @@ export default function PatientForm({ onPatientAdded, currentBranch }: PatientFo
         phone: phone.trim(),
         medical_history: medicalHistory.trim() || null,
         allergies: allergies.trim() || null,
-        branch: currentBranch,
+        branch: branch,
       },
     ]);
 
@@ -54,12 +55,25 @@ export default function PatientForm({ onPatientAdded, currentBranch }: PatientFo
     <form onSubmit={handleSubmit} className="bg-white p-5 rounded-2xl shadow-sm border border-stone-200 space-y-4">
       <div className="flex justify-between items-center border-b border-stone-100 pb-3">
         <h3 className="font-semibold text-stone-800">New Patient Registration</h3>
-        <span className="text-xs px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-medium">
-          {currentBranch} Branch
+        <span className="text-xs font-semibold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200">
+          Selected: {branch}
         </span>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {/* Branch Selection Dropdown */}
+        <div className="md:col-span-2">
+          <label className="block text-xs font-semibold text-stone-700 mb-1">Select Clinic Branch *</label>
+          <select
+            value={branch}
+            onChange={(e) => setBranch(e.target.value as Branch)}
+            className="w-full p-2.5 text-sm font-medium border rounded-xl border-amber-300 bg-amber-50/40 text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+          >
+            <option value="Ezhukone">📍 Ezhukone Clinic</option>
+            <option value="Chandanathope">📍 Chandanathope Clinic</option>
+          </select>
+        </div>
+
         <div>
           <label className="block text-xs font-semibold text-stone-600 mb-1">OP Number</label>
           <input
@@ -146,7 +160,7 @@ export default function PatientForm({ onPatientAdded, currentBranch }: PatientFo
         disabled={loading}
         className="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium py-2.5 rounded-xl transition-all shadow-sm"
       >
-        {loading ? "Registering..." : "Register Patient"}
+        {loading ? "Registering..." : `Register Patient to ${branch}`}
       </button>
     </form>
   );
