@@ -1,308 +1,219 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
+import { supabase } from "@/lib/supabaseClient";
+import type { Patient } from "@/lib/types";
 import PatientForm from "@/components/PatientForm";
 import AppointmentsList from "@/components/AppointmentsList";
 import TreatmentForm from "@/components/TreatmentForm";
-import { supabase } from "@/lib/supabaseClient";
+import AllergyBadge from "@/components/AllergyBadge";
 
-export default function Home() {
-  const [activeTab, setActiveTab] = useState<"daily_op" | "patients" | "treatment">("patients");
-  const [selectedBranch, setSelectedBranch] = useState<string>("Ezhukone");
-  const [patients, setPatients] = useState<any[]>([]);
+type Tab = "appointments" | "patients" | "treatments";
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: "appointments", label: "Daily OP" },
+  { id: "patients", label: "Patients" },
+  { id: "treatments", label: "Treatment & billing" },
+];
+
+export default function DashboardPage() {
+  const [tab, setTab] = useState<Tab>("patients");
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
+  const [loadingPatients, setLoadingPatients] = useState(true);
+  const [patientsError, setPatientsError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedPatient, setSelectedPatient] = useState<any | null>(null);
 
-  // Fetch Patients based on Selected Branch
-  const fetchPatients = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("patients")
-        .select("*")
-        .eq("branch", selectedBranch)
-        .order("created_at", { ascending: false });
+  const loadPatients = useCallback(async () => {
+    setLoadingPatients(true);
+    setPatientsError(null);
+    const { data, error } = await supabase
+      .from("patients")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      setPatients(data || []);
-    } catch (err: any) {
-      console.error("Error fetching patients:", err.message);
+    if (error) {
+      setPatientsError(error.message);
+    } else {
+      setPatients((data as Patient[]) || []);
     }
-  };
+    setLoadingPatients(false);
+  }, []);
 
   useEffect(() => {
-    fetchPatients();
-  }, [selectedBranch]);
+    loadPatients();
+  }, [loadPatients]);
 
-  // Filter Patients
-  const filteredPatients = patients.filter((patient) => {
-    const name = patient.full_name || patient.patient_name || patient.name || "";
-    const op = patient.op_number || patient.op_no || "";
-    const phone = patient.phone_number || patient.phone || "";
-    const q = searchQuery.toLowerCase();
+  const filteredPatients = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return patients;
+    return patients.filter((p) => {
+      const matchName = p.name?.toLowerCase().includes(q);
+      const matchPhone = p.phone?.toLowerCase().includes(q);
+      const matchOp = p.op_number?.toLowerCase().includes(q);
+      return matchName || matchPhone || matchOp;
+    });
+  }, [patients, searchQuery]);
 
-    return (
-      name.toLowerCase().includes(q) ||
-      op.toLowerCase().includes(q) ||
-      phone.toLowerCase().includes(q)
-    );
-  });
+  function handleOpenPatientTreatment(patientId: string) {
+    setSelectedPatientId(patientId);
+    setTab("treatments");
+  }
 
   return (
-    <main className="min-h-screen bg-[#faf8f5] text-stone-800 pb-16">
-      {/* Header */}
-      <header className="bg-white border-b border-stone-200 sticky top-0 z-20 px-6 py-4 flex flex-wrap justify-between items-center shadow-sm">
-        <div>
-          <h1 className="text-2xl font-black text-stone-900 tracking-tight">
-            Dr. Syam's Dental Clinic
-          </h1>
-          <p className="text-xs text-stone-500 font-medium">Dental Clinic Desk — Doctor Dashboard</p>
+    <main className="min-h-screen bg-stone-100 text-stone-900 pb-16 font-sans">
+      <header className="border-b border-stone-200 bg-stone-50/80 backdrop-blur sticky top-0 z-20">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-serif font-bold tracking-tight text-stone-900">
+              Dr. Syam&apos;s Dental Clinic
+            </h1>
+            <p className="text-xs font-serif italic tracking-wider text-amber-800/90 font-medium mt-0.5">
+              ✦ Chandanathope &bull; Ezhukone ✦
+            </p>
+          </div>
+          <div className="text-xs font-mono text-stone-500 uppercase">
+            {new Date().toLocaleDateString("en-IN", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+            })}
+          </div>
         </div>
 
-        {/* Live Active Branch Selector */}
-        <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl shadow-sm mt-2 sm:mt-0">
-          <span className="text-xs font-bold text-amber-900">Active Branch:</span>
-          <select
-            value={selectedBranch}
-            onChange={(e) => setSelectedBranch(e.target.value)}
-            className="bg-white border border-amber-300 text-amber-950 font-bold text-xs rounded-lg px-2.5 py-1 outline-none shadow-inner cursor-pointer"
-          >
-            <option value="Ezhukone">Ezhukone</option>
-            <option value="Chandanathope">Chandanathope</option>
-          </select>
-        </div>
+        <nav className="max-w-6xl mx-auto px-4 flex gap-2 border-t border-stone-200/60 pt-2 pb-2">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                tab === t.id
+                  ? "bg-stone-900 text-stone-50 shadow-sm"
+                  : "text-stone-600 hover:text-stone-900 hover:bg-stone-200/60"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </nav>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6">
-        {/* Navigation Tabs */}
-        <div className="flex flex-wrap gap-2 mb-6 border-b border-stone-200 pb-3">
-          <button
-            onClick={() => setActiveTab("patients")}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
-              activeTab === "patients"
-                ? "bg-stone-900 text-white shadow-sm"
-                : "text-stone-600 hover:bg-stone-100"
-            }`}
-          >
-            👤 Patients & Records
-          </button>
-
-          <button
-            onClick={() => setActiveTab("daily_op")}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
-              activeTab === "daily_op"
-                ? "bg-stone-900 text-white shadow-sm"
-                : "text-stone-600 hover:bg-stone-100"
-            }`}
-          >
-            📅 Daily OP & Appointments
-          </button>
-
-          <button
-            onClick={() => setActiveTab("treatment")}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
-              activeTab === "treatment"
-                ? "bg-stone-900 text-white shadow-sm"
-                : "text-stone-600 hover:bg-stone-100"
-            }`}
-          >
-            🦷 Treatment & Billing
-          </button>
-        </div>
-
-        {/* Tab 1: Patients & Registration */}
-        {activeTab === "patients" && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-5">
-              <PatientForm
-                branch={selectedBranch}
-                setBranch={setSelectedBranch}
-                onSuccess={fetchPatients}
-              />
-            </div>
-
-            <div className="lg:col-span-7">
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-bold text-stone-800">
-                    Patient Directory ({filteredPatients.length})
-                  </h2>
-                  <span className="text-xs bg-stone-100 text-stone-600 font-semibold px-2.5 py-1 rounded-full">
-                    {selectedBranch} Branch
-                  </span>
-                </div>
-
-                <div className="mb-4">
-                  <input
-                    type="text"
-                    placeholder="Search by Name, OP Number, or Phone..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full border border-stone-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-stone-400 shadow-sm"
-                  />
-                </div>
-
-                <div className="space-y-3 max-h-[540px] overflow-y-auto pr-1">
-                  {filteredPatients.length === 0 ? (
-                    <div className="text-center py-10 text-stone-400 text-sm">
-                      No patients registered in {selectedBranch} branch yet.
-                    </div>
-                  ) : (
-                    filteredPatients.map((patient) => {
-                      const displayName =
-                        patient.full_name ||
-                        patient.patient_name ||
-                        patient.name ||
-                        "Unnamed Patient";
-                      const op = patient.op_number || patient.op_no || "—";
-                      const phone = patient.phone_number || patient.phone || "—";
-
-                      return (
-                        <div
-                          key={patient.id}
-                          onClick={() => setSelectedPatient(patient)}
-                          className="p-4 border border-stone-200 rounded-xl hover:border-amber-400 hover:bg-amber-50/30 transition cursor-pointer flex justify-between items-center shadow-xs"
-                        >
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="bg-amber-100 text-amber-900 text-xs px-2 py-0.5 rounded-md font-bold">
-                                OP: {op}
-                              </span>
-                              <span className="font-bold text-base text-stone-900">
-                                {displayName}
-                              </span>
-                              <span className="text-xs text-stone-500 font-medium">
-                                ({patient.gender || "—"}, {patient.age ? `${patient.age} yrs` : "—"})
-                              </span>
-                            </div>
-                            <div className="text-xs text-stone-600 mt-1.5 flex gap-4">
-                              <span>📞 {phone}</span>
-                              {patient.address && <span>📍 {patient.address}</span>}
-                            </div>
-                            {patient.medical_history && (
-                              <div className="text-xs text-red-800 bg-red-50 border border-red-100 px-2 py-0.5 rounded mt-2 inline-block font-medium">
-                                ⚠️ History: {patient.medical_history}
-                              </div>
-                            )}
-                          </div>
-                          <span className="text-xs bg-stone-900 text-white font-medium px-3 py-1.5 rounded-lg hover:bg-stone-700">
-                            View Details →
-                          </span>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
+      <div className="max-w-6xl mx-auto px-4 pt-6">
+        {tab === "appointments" && (
+          <AppointmentsList patients={patients} onUpdated={loadPatients} />
         )}
 
-        {/* Tab 2: Daily OP & Appointments */}
-        {activeTab === "daily_op" && (
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
-            {AppointmentsList ? (
-              <AppointmentsList branch={selectedBranch} />
-            ) : (
-              <p className="text-stone-400">Loading Appointments...</p>
-            )}
-          </div>
-        )}
+        {tab === "patients" && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <PatientForm onRegistered={loadPatients} />
 
-        {/* Tab 3: Treatment & Billing */}
-        {activeTab === "treatment" && (
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
-            {TreatmentForm ? (
-              <TreatmentForm branch={selectedBranch} patient={selectedPatient} />
-            ) : (
-              <p className="text-stone-400">Loading Treatments...</p>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Patient Details Full Modal (Opens when clicked on any patient) */}
-      {selectedPatient && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden border border-stone-200 animate-in fade-in zoom-in duration-150">
-            <div className="bg-stone-900 text-white p-5 flex justify-between items-center">
-              <div>
-                <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">
-                  OP: {selectedPatient.op_number || selectedPatient.op_no || "—"}
-                </span>
-                <h3 className="text-xl font-bold">
-                  {selectedPatient.full_name || selectedPatient.patient_name || selectedPatient.name}
-                </h3>
-              </div>
-              <button
-                onClick={() => setSelectedPatient(null)}
-                className="text-stone-400 hover:text-white text-2xl leading-none px-2"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4 text-sm">
-              <div className="grid grid-cols-2 gap-4 pb-3 border-b border-stone-100">
+            <div className="bg-white p-6 rounded-xl border border-stone-200 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <span className="text-xs text-stone-400 block font-semibold">Age & Gender</span>
-                  <p className="font-bold text-stone-800">
-                    {selectedPatient.age || "—"} yrs / {selectedPatient.gender || "—"}
+                  <h2 className="text-lg font-bold text-stone-800">
+                    All patients ({patients.length})
+                  </h2>
+                  <p className="text-xs text-stone-500">
+                    Click any patient card to open treatment record & history.
                   </p>
                 </div>
-                <div>
-                  <span className="text-xs text-stone-400 block font-semibold">Branch</span>
-                  <p className="font-bold text-amber-900">{selectedPatient.branch || selectedBranch}</p>
+              </div>
+
+              {/* Patient Search Input Bar */}
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="🔍 Search by Name, OP No, or Phone..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full p-2.5 pl-3 border border-stone-300 rounded-lg text-sm bg-stone-50 focus:bg-white focus:outline-none focus:border-stone-800 transition shadow-inner"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-3 top-2.5 text-xs text-stone-400 hover:text-stone-700 bg-stone-200 rounded-full px-1.5 py-0.5"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {loadingPatients && (
+                <p className="text-xs text-stone-400">Loading patients...</p>
+              )}
+              {patientsError && (
+                <p className="text-xs text-red-500">Error: {patientsError}</p>
+              )}
+
+              {filteredPatients.length === 0 && !loadingPatients && (
+                <div className="p-4 text-center bg-stone-50 rounded-lg border border-dashed border-stone-200 text-stone-400 text-xs">
+                  No patient found matching &ldquo;{searchQuery}&rdquo;
                 </div>
-              </div>
+              )}
 
-              <div className="pb-3 border-b border-stone-100">
-                <span className="text-xs text-stone-400 block font-semibold">Phone Number</span>
-                <div className="flex items-center justify-between mt-1">
-                  <p className="font-bold text-stone-800">{selectedPatient.phone_number || selectedPatient.phone || "—"}</p>
-                  {(selectedPatient.phone_number || selectedPatient.phone) && (
-                    <a
-                      href={`https://wa.me/${(selectedPatient.phone_number || selectedPatient.phone).replace(/[^0-9]/g, "")}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-xs"
-                    >
-                      💬 WhatsApp
-                    </a>
-                  )}
-                </div>
-              </div>
+              <div className="space-y-3 max-h-[550px] overflow-y-auto pr-1">
+                {filteredPatients.map((p) => (
+                  <div
+                    key={p.id}
+                    onClick={() => handleOpenPatientTreatment(p.id)}
+                    className="p-3.5 bg-stone-50 hover:bg-amber-50/50 cursor-pointer rounded-lg border border-stone-200 hover:border-stone-400 transition space-y-2 shadow-xs group"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {p.op_number && (
+                          <span className="bg-stone-800 text-white font-mono text-[10px] px-1.5 py-0.5 rounded font-semibold">
+                            OP: {p.op_number}
+                          </span>
+                        )}
+                        <span className="font-bold text-stone-900 text-sm group-hover:text-amber-950">
+                          {p.name}
+                        </span>
+                        {p.gender && (
+                          <span className="text-stone-500 text-xs">({p.gender})</span>
+                        )}
+                      </div>
+                      <AllergyBadge text={p.allergies} />
+                    </div>
 
-              <div className="pb-3 border-b border-stone-100">
-                <span className="text-xs text-stone-400 block font-semibold">Address</span>
-                <p className="font-medium text-stone-700 mt-1">{selectedPatient.address || "No address provided"}</p>
-              </div>
+                    <div className="text-stone-600 flex flex-wrap gap-x-4 text-[11px]">
+                      {p.age && <span>Age: <strong>{p.age} yrs</strong></span>}
+                      {p.phone && <span>Ph: <strong>{p.phone}</strong></span>}
+                    </div>
 
-              <div className="pb-3 border-b border-stone-100">
-                <span className="text-xs text-stone-400 block font-semibold">Medical History</span>
-                <p className="font-semibold text-red-700 mt-1">
-                  {selectedPatient.medical_history || "None recorded"}
-                </p>
-              </div>
+                    {p.address && (
+                      <div className="text-stone-600 text-[11px]">
+                        <span className="font-semibold text-stone-700">Address: </span>
+                        {p.address}
+                      </div>
+                    )}
 
-              <div>
-                <span className="text-xs text-stone-400 block font-semibold">Allergies</span>
-                <p className="font-semibold text-amber-800 mt-1">
-                  {selectedPatient.allergies || "None"}
-                </p>
-              </div>
-            </div>
+                    {p.medical_history && (
+                      <div className="text-amber-800 text-[11px] bg-amber-50 p-1.5 rounded border border-amber-200">
+                        <span className="font-semibold">Med History: </span>
+                        {p.medical_history}
+                      </div>
+                    )}
 
-            <div className="bg-stone-50 p-4 border-t border-stone-100 flex justify-end">
-              <button
-                onClick={() => setSelectedPatient(null)}
-                className="bg-stone-200 hover:bg-stone-300 text-stone-800 font-bold px-5 py-2 rounded-xl text-xs"
-              >
-                Close
-              </button>
+                    <div className="pt-1 flex justify-end">
+                      <span className="text-[11px] font-semibold text-stone-600 group-hover:text-stone-900 flex items-center gap-1">
+                        Open History & Treatment ➔
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {tab === "treatments" && (
+          <TreatmentForm
+            patients={patients}
+            selectedPatientId={selectedPatientId}
+            onSelectPatient={(id) => setSelectedPatientId(id)}
+          />
+        )}
+      </div>
     </main>
   );
 }
