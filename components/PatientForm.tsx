@@ -5,16 +5,12 @@ import { supabase } from "@/lib/supabaseClient";
 
 interface PatientFormProps {
   onPatientAdded?: () => void;
-  onSuccess?: () => void;
   currentBranch?: string;
-  branch?: string;
 }
 
 export default function PatientForm({
   onPatientAdded,
-  onSuccess,
   currentBranch,
-  branch,
 }: PatientFormProps) {
   const [opNumber, setOpNumber] = useState("");
   const [fullName, setFullName] = useState("");
@@ -25,8 +21,6 @@ export default function PatientForm({
   const [medicalHistory, setMedicalHistory] = useState("");
   const [allergies, setAllergies] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const activeBranch = currentBranch || branch || "Ezhukone";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,26 +35,23 @@ export default function PatientForm({
     try {
       const payload: any = {
         patient_name: fullName.trim(),
-        full_name: fullName.trim(),
         gender: gender || "Male",
         phone: phone.trim() || null,
-        phone_number: phone.trim() || null,
         address: address.trim() || null,
         medical_history: medicalHistory.trim() || "n/a",
         allergies: allergies.trim() || null,
-        branch: activeBranch,
+        branch: currentBranch || "Ezhukone",
       };
 
       if (opNumber.trim()) {
         payload.op_number = opNumber.trim();
-        payload.op_no = opNumber.trim();
       }
 
       if (age.trim()) {
         payload.age = parseInt(age, 10);
       }
 
-      const { data, error } = await supabase.from("patients").insert([payload]).select();
+      const { error } = await supabase.from("patients").insert([payload]);
 
       if (error) {
         console.error("Supabase insert error:", error);
@@ -79,7 +70,6 @@ export default function PatientForm({
       setAllergies("");
 
       if (onPatientAdded) onPatientAdded();
-      if (onSuccess) onSuccess();
     } catch (err: any) {
       console.error("Error submitting form:", err);
       alert("An unexpected error occurred: " + (err.message || err));
