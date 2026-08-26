@@ -27,12 +27,10 @@ export default function Dashboard() {
       supabase
         .from("appointments")
         .select("*, patients(*)")
-        .eq("branch", branch)
         .order("slot_time", { ascending: true }),
       supabase
         .from("treatments")
         .select("*, patients(*)")
-        .eq("branch", branch)
         .order("created_at", { ascending: false }),
     ]);
 
@@ -141,14 +139,12 @@ export default function Dashboard() {
           <AppointmentsList
             appointments={appointments}
             onUpdate={fetchData}
-            currentBranch={branch}
           />
 
           <TreatmentForm
             selectedPatient={selectedPatient}
             treatments={treatments}
             onTreatmentAdded={fetchData}
-            currentBranch={branch}
           />
         </div>
       </div>
