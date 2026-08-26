@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Patient, Appointment, Treatment, Branch } from "@/lib/types";
@@ -13,32 +15,36 @@ export default function Dashboard() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const fetchData = useCallback(async () => {
-    setLoading(true);
+    try {
+      setLoading(true);
 
-    const [patientsRes, apptsRes, treatsRes] = await Promise.all([
-      supabase
-        .from("patients")
-        .select("*")
-        .eq("branch", branch)
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("appointments")
-        .select("*, patients(*)")
-        .order("slot_time", { ascending: true }),
-      supabase
-        .from("treatments")
-        .select("*, patients(*)")
-        .order("created_at", { ascending: false }),
-    ]);
+      const [patientsRes, apptsRes, treatsRes] = await Promise.all([
+        supabase
+          .from("patients")
+          .select("*")
+          .eq("branch", branch)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("appointments")
+          .select("*, patients(*)")
+          .order("slot_time", { ascending: true }),
+        supabase
+          .from("treatments")
+          .select("*, patients(*)")
+          .order("created_at", { ascending: false }),
+      ]);
 
-    if (patientsRes.data) setPatients(patientsRes.data as Patient[]);
-    if (apptsRes.data) setAppointments(apptsRes.data as Appointment[]);
-    if (treatsRes.data) setTreatments(treatsRes.data as Treatment[]);
-
-    setLoading(false);
+      if (patientsRes.data) setPatients(patientsRes.data as Patient[]);
+      if (apptsRes.data) setAppointments(apptsRes.data as Appointment[]);
+      if (treatsRes.data) setTreatments(treatsRes.data as Treatment[]);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
   }, [branch]);
 
   useEffect(() => {
@@ -70,6 +76,7 @@ export default function Dashboard() {
         {/* Branch Toggle Buttons */}
         <div className="flex bg-stone-100 p-1.5 rounded-xl border border-stone-200">
           <button
+            type="button"
             onClick={() => setBranch("Ezhukone")}
             className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
               branch === "Ezhukone"
@@ -80,6 +87,7 @@ export default function Dashboard() {
             📍 Ezhukone Branch
           </button>
           <button
+            type="button"
             onClick={() => setBranch("Chandanathope")}
             className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
               branch === "Chandanathope"
