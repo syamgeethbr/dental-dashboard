@@ -7,12 +7,12 @@ import TreatmentForm from "@/components/TreatmentForm";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<"patients" | "appointments" | "treatment">("patients");
+  const [activeTab, setActiveTab] = useState<"daily_op" | "patients" | "treatment">("daily_op");
   const [selectedBranch, setSelectedBranch] = useState<string>("Ezhukone");
   const [patients, setPatients] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedPatient, setSelectedPatient] = useState<any | null>(null);
 
+  // Fetch Patients based on Selected Branch
   const fetchPatients = async () => {
     try {
       const { data, error } = await supabase
@@ -32,6 +32,7 @@ export default function Home() {
     fetchPatients();
   }, [selectedBranch]);
 
+  // Filter Patients for Search
   const filteredPatients = patients.filter((patient) => {
     const name = patient.full_name || patient.patient_name || patient.name || "";
     const op = patient.op_number || patient.op_no || "";
@@ -48,7 +49,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#faf8f5] text-stone-800 pb-12">
       {/* Header */}
-      <header className="bg-white border-b border-stone-200 sticky top-0 z-10 px-6 py-4 flex flex-wrap justify-between items-center shadow-sm">
+      <header className="bg-white border-b border-stone-200 sticky top-0 z-20 px-6 py-4 flex flex-wrap justify-between items-center shadow-sm">
         <div>
           <h1 className="text-2xl font-black text-stone-900 tracking-tight">
             Dr. Syam's Dental Clinic
@@ -71,8 +72,19 @@ export default function Home() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6">
-        {/* Navigation Tabs (3 Tabs) */}
+        {/* Navigation Tabs */}
         <div className="flex flex-wrap gap-2 mb-6 border-b border-stone-200 pb-3">
+          <button
+            onClick={() => setActiveTab("daily_op")}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
+              activeTab === "daily_op"
+                ? "bg-stone-900 text-white shadow-sm"
+                : "text-stone-600 hover:bg-stone-100"
+            }`}
+          >
+            📅 Daily OP & Appointments
+          </button>
+
           <button
             onClick={() => setActiveTab("patients")}
             className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
@@ -81,18 +93,7 @@ export default function Home() {
                 : "text-stone-600 hover:bg-stone-100"
             }`}
           >
-            Patients & Registration
-          </button>
-
-          <button
-            onClick={() => setActiveTab("appointments")}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
-              activeTab === "appointments"
-                ? "bg-stone-900 text-white shadow-sm"
-                : "text-stone-600 hover:bg-stone-100"
-            }`}
-          >
-            Daily OP & Appointments
+            👤 Patient Registration
           </button>
 
           <button
@@ -103,11 +104,18 @@ export default function Home() {
                 : "text-stone-600 hover:bg-stone-100"
             }`}
           >
-            Treatment & Billing
+            🦷 Treatment & Billing
           </button>
         </div>
 
-        {/* Tab 1: Patients & Registration */}
+        {/* Tab 1: Daily OP & Appointments (With WhatsApp Reminder & Slot View) */}
+        {activeTab === "daily_op" && (
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
+            <AppointmentsList />
+          </div>
+        )}
+
+        {/* Tab 2: Patients & Registration */}
         {activeTab === "patients" && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div className="lg:col-span-6">
@@ -139,10 +147,10 @@ export default function Home() {
                   />
                 </div>
 
-                <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+                <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
                   {filteredPatients.length === 0 ? (
                     <p className="text-sm text-stone-400 text-center py-6">
-                      No patients found for this branch.
+                      No patients found for {selectedBranch} branch.
                     </p>
                   ) : (
                     filteredPatients.map((patient) => {
@@ -155,8 +163,7 @@ export default function Home() {
                       return (
                         <div
                           key={patient.id}
-                          onClick={() => setSelectedPatient(patient)}
-                          className="p-3.5 border border-stone-100 rounded-xl hover:border-stone-300 hover:bg-stone-50/50 transition cursor-pointer flex justify-between items-start"
+                          className="p-3.5 border border-stone-100 rounded-xl hover:border-stone-300 hover:bg-stone-50/50 transition flex justify-between items-start"
                         >
                           <div>
                             <div className="flex items-center gap-2">
@@ -186,13 +193,6 @@ export default function Home() {
                 </div>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Tab 2: Daily OP & Appointments */}
-        {activeTab === "appointments" && (
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
-            <AppointmentsList />
           </div>
         )}
 
