@@ -2,122 +2,104 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { Branch } from "@/lib/types";
 
-export default function PatientForm({ onRegistered }: { onRegistered?: () => void }) {
-  const [form, setForm] = useState({
-    op_number: "",
-    name: "",
-    age: "",
-    gender: "Male",
-    phone: "",
-    address: "",
-    medical_history: "",
-    allergies: "",
-  });
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [justSaved, setJustSaved] = useState(false);
+interface PatientFormProps {
+  onPatientAdded: () => void;
+  currentBranch: Branch;
+}
 
-  function update(field: keyof typeof form, value: string) {
-    setForm((f) => ({ ...f, [field]: value }));
-  }
+export default function PatientForm({ onPatientAdded, currentBranch }: PatientFormProps) {
+  const [fullName, setFullName] = useState("");
+  const [opNumber, setOpNumber] = useState("");
+  const [age, setAge] = useState("");
+  const [gender, setGender] = useState("Male");
+  const [phone, setPhone] = useState("");
+  const [medicalHistory, setMedicalHistory] = useState("");
+  const [allergies, setAllergies] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim()) {
-      setError("Patient Name is required");
-      return;
-    }
+    if (!fullName.trim()) return;
 
-    setSaving(true);
-    setError(null);
-
-    const { error: insertError } = await supabase.from("patients").insert([
+    setLoading(true);
+    const { error } = await supabase.from("patients").insert([
       {
-        op_number: form.op_number.trim() || null,
-        name: form.name.trim(),
-        age: form.age ? parseInt(form.age, 10) : null,
-        gender: form.gender,
-        phone: form.phone.trim() || null,
-        address: form.address.trim() || null,
-        medical_history: form.medical_history.trim() || null,
-        allergies: form.allergies.trim() || null,
+        op_number: opNumber.trim() || `OP-${Date.now().toString().slice(-4)}`,
+        full_name: fullName.trim(),
+        age: age ? parseInt(age) : null,
+        gender,
+        phone: phone.trim(),
+        medical_history: medicalHistory.trim() || null,
+        allergies: allergies.trim() || null,
+        branch: currentBranch,
       },
     ]);
 
-    setSaving(false);
+    setLoading(false);
 
-    if (insertError) {
-      setError(insertError.message);
-      return;
+    if (!error) {
+      setFullName("");
+      setOpNumber("");
+      setAge("");
+      setPhone("");
+      setMedicalHistory("");
+      setAllergies("");
+      onPatientAdded();
     }
-
-    setForm({
-      op_number: "",
-      name: "",
-      age: "",
-      gender: "Male",
-      phone: "",
-      address: "",
-      medical_history: "",
-      allergies: "",
-    });
-    setJustSaved(true);
-    setTimeout(() => setJustSaved(false), 3000);
-    if (onRegistered) onRegistered();
-  }
+  };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl border border-stone-200 shadow-sm space-y-4">
-      <h2 className="text-lg font-bold text-stone-800">New Patient</h2>
-      <p className="text-xs text-stone-500">Register a patient once — their record carries into appointments and treatments.</p>
+    <form onSubmit={handleSubmit} className="bg-white p-5 rounded-2xl shadow-sm border border-stone-200 space-y-4">
+      <div className="flex justify-between items-center border-b border-stone-100 pb-3">
+        <h3 className="font-semibold text-stone-800">New Patient Registration</h3>
+        <span className="text-xs px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-medium">
+          {currentBranch} Branch
+        </span>
+      </div>
 
-      {error && <div className="p-3 bg-red-50 text-red-600 rounded text-sm">{error}</div>}
-      {justSaved && <div className="p-3 bg-emerald-50 text-emerald-700 rounded text-sm">Patient registered successfully!</div>}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs font-semibold text-stone-600 uppercase mb-1">OP Number</label>
+          <label className="block text-xs font-semibold text-stone-600 mb-1">OP Number</label>
           <input
             type="text"
             placeholder="e.g. OP-101"
-            value={form.op_number}
-            onChange={(e) => update("op_number", e.target.value)}
-            className="w-full p-2.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:border-stone-800"
+            value={opNumber}
+            onChange={(e) => setOpNumber(e.target.value)}
+            className="w-full p-2.5 text-sm border rounded-xl border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-stone-600 uppercase mb-1">Full Name *</label>
+          <label className="block text-xs font-semibold text-stone-600 mb-1">Full Name *</label>
           <input
             type="text"
             required
-            placeholder="e.g. Anjali Menon"
-            value={form.name}
-            onChange={(e) => update("name", e.target.value)}
-            className="w-full p-2.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:border-stone-800"
+            placeholder="Patient Name"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            className="w-full p-2.5 text-sm border rounded-xl border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
           />
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <label className="block text-xs font-semibold text-stone-600 uppercase mb-1">Age</label>
+          <label className="block text-xs font-semibold text-stone-600 mb-1">Age</label>
           <input
             type="number"
-            placeholder="32"
-            value={form.age}
-            onChange={(e) => update("age", e.target.value)}
-            className="w-full p-2.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:border-stone-800"
+            placeholder="Age"
+            value={age}
+            onChange={(e) => setAge(e.target.value)}
+            className="w-full p-2.5 text-sm border rounded-xl border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-stone-600 uppercase mb-1">Sex / Gender</label>
+          <label className="block text-xs font-semibold text-stone-600 mb-1">Gender</label>
           <select
-            value={form.gender}
-            onChange={(e) => update("gender", e.target.value)}
-            className="w-full p-2.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:border-stone-800 bg-white"
+            value={gender}
+            onChange={(e) => setGender(e.target.value)}
+            className="w-full p-2.5 text-sm border rounded-xl border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
           >
             <option value="Male">Male</option>
             <option value="Female">Female</option>
@@ -125,57 +107,46 @@ export default function PatientForm({ onRegistered }: { onRegistered?: () => voi
           </select>
         </div>
 
-        <div>
-          <label className="block text-xs font-semibold text-stone-600 uppercase mb-1">Phone</label>
+        <div className="md:col-span-2">
+          <label className="block text-xs font-semibold text-stone-600 mb-1">Phone Number</label>
           <input
             type="tel"
-            placeholder="+91 98xxxxxxxx"
-            value={form.phone}
-            onChange={(e) => update("phone", e.target.value)}
-            className="w-full p-2.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:border-stone-800"
+            placeholder="+91..."
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className="w-full p-2.5 text-sm border rounded-xl border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
+          />
+        </div>
+
+        <div className="md:col-span-2">
+          <label className="block text-xs font-semibold text-stone-600 mb-1">Medical History</label>
+          <input
+            type="text"
+            placeholder="e.g. Diabetic, Hypertensive..."
+            value={medicalHistory}
+            onChange={(e) => setMedicalHistory(e.target.value)}
+            className="w-full p-2.5 text-sm border rounded-xl border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
+          />
+        </div>
+
+        <div className="md:col-span-2">
+          <label className="block text-xs font-semibold text-stone-600 mb-1">Allergies (if any)</label>
+          <input
+            type="text"
+            placeholder="e.g. Penicillin, Latex..."
+            value={allergies}
+            onChange={(e) => setAllergies(e.target.value)}
+            className="w-full p-2.5 text-sm border rounded-xl border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500"
           />
         </div>
       </div>
 
-      <div>
-        <label className="block text-xs font-semibold text-stone-600 uppercase mb-1">Address</label>
-        <textarea
-          rows={2}
-          placeholder="House name, Street, Place..."
-          value={form.address}
-          onChange={(e) => update("address", e.target.value)}
-          className="w-full p-2.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:border-stone-800"
-        />
-      </div>
-
-      <div>
-        <label className="block text-xs font-semibold text-stone-600 uppercase mb-1">Medical History</label>
-        <textarea
-          rows={2}
-          placeholder="Diabetes, hypertension, prior surgeries..."
-          value={form.medical_history}
-          onChange={(e) => update("medical_history", e.target.value)}
-          className="w-full p-2.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:border-stone-800"
-        />
-      </div>
-
-      <div>
-        <label className="block text-xs font-semibold text-stone-600 uppercase mb-1">Allergies</label>
-        <input
-          type="text"
-          placeholder="Penicillin, Latex, NSAIDs..."
-          value={form.allergies}
-          onChange={(e) => update("allergies", e.target.value)}
-          className="w-full p-2.5 border border-stone-300 rounded-lg text-sm focus:outline-none focus:border-stone-800"
-        />
-      </div>
-
       <button
         type="submit"
-        disabled={saving}
-        className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 text-white font-medium text-sm rounded-lg transition"
+        disabled={loading}
+        className="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium py-2.5 rounded-xl transition-all shadow-sm"
       >
-        {saving ? "Registering Patient..." : "Register Patient"}
+        {loading ? "Registering..." : "Register Patient"}
       </button>
     </form>
   );
