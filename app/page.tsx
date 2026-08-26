@@ -7,7 +7,7 @@ import TreatmentForm from "@/components/TreatmentForm";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<"patients" | "treatment">("patients");
+  const [activeTab, setActiveTab] = useState<"patients" | "appointments" | "treatment">("patients");
   const [selectedBranch, setSelectedBranch] = useState<string>("Ezhukone");
   const [patients, setPatients] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -33,11 +33,15 @@ export default function Home() {
   }, [selectedBranch]);
 
   const filteredPatients = patients.filter((patient) => {
+    const name = patient.full_name || patient.patient_name || patient.name || "";
+    const op = patient.op_number || patient.op_no || "";
+    const phone = patient.phone_number || patient.phone || "";
     const q = searchQuery.toLowerCase();
+
     return (
-      (patient.full_name && patient.full_name.toLowerCase().includes(q)) ||
-      (patient.op_number && patient.op_number.toLowerCase().includes(q)) ||
-      (patient.phone_number && patient.phone_number.toLowerCase().includes(q))
+      name.toLowerCase().includes(q) ||
+      op.toLowerCase().includes(q) ||
+      phone.toLowerCase().includes(q)
     );
   });
 
@@ -67,8 +71,8 @@ export default function Home() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6">
-        {/* Navigation Tabs */}
-        <div className="flex gap-2 mb-6 border-b border-stone-200 pb-2">
+        {/* Navigation Tabs (3 Tabs) */}
+        <div className="flex flex-wrap gap-2 mb-6 border-b border-stone-200 pb-3">
           <button
             onClick={() => setActiveTab("patients")}
             className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
@@ -77,8 +81,20 @@ export default function Home() {
                 : "text-stone-600 hover:bg-stone-100"
             }`}
           >
-            Patients
+            Patients & Registration
           </button>
+
+          <button
+            onClick={() => setActiveTab("appointments")}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
+              activeTab === "appointments"
+                ? "bg-stone-900 text-white shadow-sm"
+                : "text-stone-600 hover:bg-stone-100"
+            }`}
+          >
+            Daily OP & Appointments
+          </button>
+
           <button
             onClick={() => setActiveTab("treatment")}
             className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
@@ -91,9 +107,9 @@ export default function Home() {
           </button>
         </div>
 
-        {activeTab === "patients" ? (
+        {/* Tab 1: Patients & Registration */}
+        {activeTab === "patients" && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Left: Registration Form */}
             <div className="lg:col-span-6">
               <PatientForm
                 branch={selectedBranch}
@@ -102,7 +118,6 @@ export default function Home() {
               />
             </div>
 
-            {/* Right: Patient List */}
             <div className="lg:col-span-6">
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
                 <div className="flex justify-between items-center mb-4">
@@ -114,7 +129,6 @@ export default function Home() {
                   </span>
                 </div>
 
-                {/* Search Box */}
                 <div className="mb-4">
                   <input
                     type="text"
@@ -125,50 +139,67 @@ export default function Home() {
                   />
                 </div>
 
-                {/* Patient Cards */}
                 <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
                   {filteredPatients.length === 0 ? (
                     <p className="text-sm text-stone-400 text-center py-6">
                       No patients found for this branch.
                     </p>
                   ) : (
-                    filteredPatients.map((patient) => (
-                      <div
-                        key={patient.id}
-                        onClick={() => setSelectedPatient(patient)}
-                        className="p-3.5 border border-stone-100 rounded-xl hover:border-stone-300 hover:bg-stone-50/50 transition cursor-pointer flex justify-between items-start"
-                      >
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="bg-stone-100 text-stone-700 text-xs px-2 py-0.5 rounded font-bold">
-                              OP: {patient.op_number || "—"}
-                            </span>
-                            <span className="font-bold text-sm text-stone-800">
-                              {patient.full_name}
-                            </span>
-                            <span className="text-xs text-stone-500">
-                              ({patient.gender || "—"})
-                            </span>
-                          </div>
-                          <div className="text-xs text-stone-500 mt-1">
-                            Age: {patient.age || "—"} yrs | Ph: {patient.phone_number || "—"}
-                          </div>
-                          {patient.medical_history && (
-                            <div className="text-xs text-amber-800 bg-amber-50 px-2 py-0.5 rounded mt-1.5 inline-block">
-                              Med History: {patient.medical_history}
+                    filteredPatients.map((patient) => {
+                      const displayName =
+                        patient.full_name ||
+                        patient.patient_name ||
+                        patient.name ||
+                        "Unnamed Patient";
+
+                      return (
+                        <div
+                          key={patient.id}
+                          onClick={() => setSelectedPatient(patient)}
+                          className="p-3.5 border border-stone-100 rounded-xl hover:border-stone-300 hover:bg-stone-50/50 transition cursor-pointer flex justify-between items-start"
+                        >
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="bg-stone-100 text-stone-700 text-xs px-2 py-0.5 rounded font-bold">
+                                OP: {patient.op_number || patient.op_no || "—"}
+                              </span>
+                              <span className="font-bold text-sm text-stone-900">
+                                {displayName}
+                              </span>
+                              <span className="text-xs text-stone-500">
+                                ({patient.gender || "—"})
+                              </span>
                             </div>
-                          )}
+                            <div className="text-xs text-stone-500 mt-1">
+                              Age: {patient.age || "—"} yrs | Ph: {patient.phone_number || patient.phone || "—"}
+                            </div>
+                            {patient.medical_history && (
+                              <div className="text-xs text-amber-800 bg-amber-50 px-2 py-0.5 rounded mt-1.5 inline-block">
+                                Med History: {patient.medical_history}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>
             </div>
           </div>
-        ) : (
+        )}
+
+        {/* Tab 2: Daily OP & Appointments */}
+        {activeTab === "appointments" && (
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
-            <TreatmentForm branch={selectedBranch} />
+            <AppointmentsList />
+          </div>
+        )}
+
+        {/* Tab 3: Treatment & Billing */}
+        {activeTab === "treatment" && (
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
+            <TreatmentForm />
           </div>
         )}
       </div>
