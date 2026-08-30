@@ -12,6 +12,9 @@ export default function PatientForm({
   onPatientAdded,
   currentBranch,
 }: PatientFormProps) {
+  const [registeredDate, setRegisteredDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
   const [opNumber, setOpNumber] = useState("");
   const [fullName, setFullName] = useState("");
   const [age, setAge] = useState("");
@@ -40,6 +43,7 @@ export default function PatientForm({
         address: address.trim() || null,
         medical_history: medicalHistory.trim() || "n/a",
         allergies: allergies.trim() || null,
+        registered_date: registeredDate,
       };
 
       if (opNumber.trim()) {
@@ -60,6 +64,8 @@ export default function PatientForm({
 
       alert("Patient registered successfully!");
 
+      // Reset form
+      setRegisteredDate(new Date().toISOString().split("T")[0]);
       setOpNumber("");
       setFullName("");
       setAge("");
@@ -82,6 +88,19 @@ export default function PatientForm({
       <h2 className="text-xl font-bold text-stone-800 mb-4">Patient Registration</h2>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Registration Date Field (Back Date Option) */}
+        <div>
+          <label className="block text-xs font-semibold text-stone-600 mb-1">
+            Registration Date / Visit Date
+          </label>
+          <input
+            type="date"
+            value={registeredDate}
+            onChange={(e) => setRegisteredDate(e.target.value)}
+            className="w-full border border-stone-200 rounded-lg p-2.5 text-sm outline-none focus:border-stone-400 bg-stone-50/50 cursor-pointer font-medium"
+          />
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-semibold text-stone-600 mb-1">OP Number</label>
