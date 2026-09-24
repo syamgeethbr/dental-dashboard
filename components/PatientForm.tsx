@@ -12,9 +12,9 @@ export default function PatientForm({
   onPatientAdded,
   currentBranch,
 }: PatientFormProps) {
-  const [registeredDate, setRegisteredDate] = useState(
-    new Date().toISOString().split("T")[0]
-  );
+  const todayStr = new Date().toLocaleDateString("en-CA");
+  const [registeredDate, setRegisteredDate] = useState(todayStr);
+
   const [opNumber, setOpNumber] = useState("");
   const [fullName, setFullName] = useState("");
   const [age, setAge] = useState("");
@@ -36,6 +36,8 @@ export default function PatientForm({
     setLoading(true);
 
     try {
+      const selectedTimestamp = new Date(`${registeredDate}T10:00:00`).toISOString();
+
       const payload: any = {
         name: fullName.trim(),
         gender: gender || "Male",
@@ -44,6 +46,7 @@ export default function PatientForm({
         medical_history: medicalHistory.trim() || "n/a",
         allergies: allergies.trim() || null,
         registered_date: registeredDate,
+        created_at: selectedTimestamp,
       };
 
       if (opNumber.trim()) {
@@ -64,8 +67,7 @@ export default function PatientForm({
 
       alert("Patient registered successfully!");
 
-      // Reset form
-      setRegisteredDate(new Date().toISOString().split("T")[0]);
+      setRegisteredDate(new Date().toLocaleDateString("en-CA"));
       setOpNumber("");
       setFullName("");
       setAge("");
@@ -88,10 +90,9 @@ export default function PatientForm({
       <h2 className="text-xl font-bold text-stone-800 mb-4">Patient Registration</h2>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Registration Date Field (Back Date Option) */}
         <div>
           <label className="block text-xs font-semibold text-stone-600 mb-1">
-            Registration Date / Visit Date
+            Date
           </label>
           <input
             type="date"
